@@ -1,6 +1,6 @@
 # Fiyr Partners Portal
 
-Affiliate portal for `partners.fiyr.io`.
+Affiliate portal for `partner.fiyr.io`.
 
 ## Setup
 
@@ -20,6 +20,6 @@ GitHub Actions FTP deploy (same pattern as `fiyr_customer`). Configure secrets:
 - `PLESK_FTP_HOST`
 - `PLESK_FTP_USER`
 - `PLESK_FTP_PASSWORD`
-- `PLESK_FTP_PATH` (document root for partners.fiyr.io)
+- `PLESK_FTP_PATH` (document root for partner.fiyr.io)
 
-Point DNS `partners.fiyr.io` at the Plesk host.
+Point DNS `partner.fiyr.io` at the Plesk host.

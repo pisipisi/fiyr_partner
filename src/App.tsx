@@ -73,7 +73,7 @@ export default function App() {
         />
       </Routes>
       <footer className="shell site-footer">
-        © {new Date().getFullYear()} Fiyr · partners.fiyr.io
+        © {new Date().getFullYear()} Fiyr · partner.fiyr.io
       </footer>
     </BrowserRouter>
   );
