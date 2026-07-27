@@ -66,7 +66,12 @@ export default function ApplyPage() {
             required
             minLength={8}
             autoComplete="new-password"
+            placeholder="e.g. StrongP@ss1"
           />
+          <span style={{ color: 'var(--muted)', fontSize: '0.85rem', fontWeight: 400 }}>
+            At least 8 characters with uppercase, lowercase, a number, and one of
+            @ $ ! % * ? & .
+          </span>
         </label>
         <label>
           Full name
@@ -78,7 +83,7 @@ export default function ApplyPage() {
         </label>
         <label>
           Website
-          <input name="website" type="url" placeholder="https://" />
+          <input name="website" type="text" placeholder="https://example.com" />
         </label>
         <label>
           Preferred code
@@ -86,6 +91,7 @@ export default function ApplyPage() {
             name="preferredCode"
             type="text"
             pattern="[a-zA-Z0-9_-]{3,32}"
+            title="3-32 letters, numbers, underscore, or hyphen"
             placeholder="maria20"
           />
         </label>
