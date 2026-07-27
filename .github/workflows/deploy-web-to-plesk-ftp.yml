@@ -54,7 +54,7 @@ jobs:
 
       - name: Build Vite Web
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://uzmos-api.pisi.us' }}
         run: npm run build
 
       - name: Install FTP client

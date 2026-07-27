@@ -14,14 +14,33 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+async function readJson(res: Response): Promise<unknown> {
+  const contentType = res.headers.get('content-type') || '';
+  const text = await res.text();
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      `API returned non-JSON (${res.status}). Check VITE_API_BASE_URL and that uzmos-api with the partners module is deployed.`,
+    );
+  }
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(
+      `Invalid JSON from API (${res.status}). Check VITE_API_BASE_URL.`,
+    );
+  }
+}
+
 async function parseError(res: Response): Promise<string> {
   try {
-    const data = await res.json();
+    const data = (await readJson(res)) as { message?: string | string[] };
     if (typeof data?.message === 'string') return data.message;
     if (Array.isArray(data?.message)) return data.message.join(', ');
     return res.statusText || `HTTP ${res.status}`;
-  } catch {
-    return res.statusText || `HTTP ${res.status}`;
+  } catch (err) {
+    return err instanceof Error
+      ? err.message
+      : res.statusText || `HTTP ${res.status}`;
   }
 }
 
@@ -40,7 +59,7 @@ export async function applyPartner(body: {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return res.json();
+  return readJson(res);
 }
 
 export async function login(email: string, password: string) {
@@ -50,7 +69,7 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw new Error(await parseError(res));
-  const data = await res.json();
+  const data = (await readJson(res)) as { access_token?: string };
   if (data.access_token) setToken(data.access_token);
   return data;
 }
@@ -62,7 +81,7 @@ export async function getMePartner() {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return res.json();
+  return readJson(res);
 }
 
 export async function getDashboard() {
@@ -72,7 +91,7 @@ export async function getDashboard() {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return res.json();
+  return readJson(res);
 }
 
 export async function updatePayoutDetails(body: Record<string, string>) {
@@ -87,5 +106,5 @@ export async function updatePayoutDetails(body: Record<string, string>) {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return res.json();
+  return readJson(res);
 }
