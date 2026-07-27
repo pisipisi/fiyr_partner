@@ -81,17 +81,17 @@ export async function getMePartner() {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return readJson(res);
+  return readJson(res) as Promise<Record<string, unknown>>;
 }
 
-export async function getDashboard() {
+export async function getDashboard<T = Record<string, unknown>>() {
   const token = getToken();
   if (!token) throw new Error('Not logged in');
   const res = await fetch(apiUrl('/partners/me/dashboard'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return readJson(res);
+  return (await readJson(res)) as T;
 }
 
 export async function updatePayoutDetails(body: Record<string, string>) {
@@ -106,5 +106,5 @@ export async function updatePayoutDetails(body: Record<string, string>) {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseError(res));
-  return readJson(res);
+  return readJson(res) as Promise<Record<string, unknown>>;
 }

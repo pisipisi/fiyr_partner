@@ -58,7 +58,7 @@ export default function DashboardPage() {
   const [payoutMsg, setPayoutMsg] = useState('');
 
   useEffect(() => {
-    getDashboard()
+    getDashboard<Dashboard>()
       .then(setData)
       .catch((err) =>
         setError(err instanceof Error ? err.message : 'Failed to load dashboard'),
@@ -76,7 +76,7 @@ export default function DashboardPage() {
         notes: String(fd.get('notes') || ''),
       });
       setPayoutMsg('Payout details saved.');
-      const refreshed = await getDashboard();
+      const refreshed = await getDashboard<Dashboard>();
       setData(refreshed);
     } catch (err) {
       setPayoutMsg(err instanceof Error ? err.message : 'Save failed');
