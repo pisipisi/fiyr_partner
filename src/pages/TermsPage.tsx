@@ -9,6 +9,12 @@ export default function TermsPage() {
           subscription invoices for 12 months from attribution.
         </p>
         <p>
+          Partners may also recruit other partners with a unique apply link.
+          When a recruited partner refers a paying business, the recruiting
+          partner earns a default 5% override on that business’s paid subscription
+          invoices for the same 12-month window (single level only).
+        </p>
+        <p>
           Attribution uses first-touch cookies for 90 days on marketing and
           register flows. Self-referrals are not eligible. Commissions reverse if
           a subscription invoice is refunded and the commission has not yet been

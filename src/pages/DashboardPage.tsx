@@ -9,6 +9,7 @@ type Dashboard = {
     code: string;
     status: string;
     businessCommissionPercent: number;
+    partnerOverridePercent?: number;
     recurringMonths: number;
     payoutDetails?: {
       method?: string;
@@ -19,15 +20,28 @@ type Dashboard = {
   links: {
     business: string;
     register: string;
+    recruit: string;
   };
   stats: {
     clicks: number;
     attributions: number;
     businessAttributions: number;
+    partnerReferrals: number;
+    overrideEarnedCents: number;
     earnedCents: number;
     pendingCents: number;
     paidCents: number;
   };
+  referredPartners: Array<{
+    id: string;
+    email: string;
+    fullName?: string | null;
+    companyName?: string | null;
+    code: string;
+    status: string;
+    referredAt?: string | null;
+    createdAt: string;
+  }>;
   recentCommissions: Array<{
     id: string;
     source: string;
@@ -44,12 +58,19 @@ type Dashboard = {
   }>;
 };
 
-function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
+function commissionLabel(source: string) {
+  if (source === 'subscription_invoice') return 'Business subscription';
+  if (source === 'subscription_override') return 'Partner override';
+  if (source === 'booking') return 'Booking';
+  return source;
 }
 
 async function copyText(text: string) {
   await navigator.clipboard.writeText(text);
+}
+
+function money(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export default function DashboardPage() {
@@ -128,6 +149,14 @@ export default function DashboardPage() {
           <div className="value">{data.stats.businessAttributions}</div>
         </div>
         <div className="stat">
+          <div className="label">Partner referrals</div>
+          <div className="value">{data.stats.partnerReferrals}</div>
+        </div>
+        <div className="stat">
+          <div className="label">Override earned</div>
+          <div className="value">{money(data.stats.overrideEarnedCents)}</div>
+        </div>
+        <div className="stat">
           <div className="label">Pending</div>
           <div className="value">{money(data.stats.pendingCents)}</div>
         </div>
@@ -140,8 +169,9 @@ export default function DashboardPage() {
       <section className="card" style={{ marginBottom: '1.25rem' }}>
         <h3>Your links</h3>
         <p style={{ color: 'var(--muted)', margin: '0.5rem 0 1rem' }}>
-          Share these with businesses. Commission starts when they pay a
-          subscription invoice.
+          Share business links to earn on subscriptions. Share your recruit link
+          to earn a {data.partner.partnerOverridePercent ?? 5}% override when
+          partners you refer bring paying businesses.
         </p>
         <div style={{ display: 'grid', gap: '0.85rem' }}>
           <div>
@@ -170,7 +200,58 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+          <div>
+            <div className="label">Recruit partners</div>
+            <div className="link-row">
+              <code>{data.links.recruit}</code>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => copyText(data.links.recruit)}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
         </div>
+      </section>
+
+      <section className="card" style={{ marginBottom: '1.25rem' }}>
+        <h3>Referred partners</h3>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Partner</th>
+              <th>Code</th>
+              <th>Status</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.referredPartners.length === 0 ? (
+              <tr>
+                <td colSpan={4}>
+                  No partner referrals yet. Share your recruit link to grow your
+                  network.
+                </td>
+              </tr>
+            ) : (
+              data.referredPartners.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <strong>{p.fullName || p.email}</strong>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                      {p.email}
+                    </div>
+                  </td>
+                  <td>{p.code}</td>
+                  <td>{p.status}</td>
+                  <td>{new Date(p.referredAt || p.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </section>
 
       <section className="card" style={{ marginBottom: '1.25rem' }}>
@@ -226,7 +307,7 @@ export default function DashboardPage() {
               data.recentCommissions.map((c) => (
                 <tr key={c.id}>
                   <td>{new Date(c.createdAt).toLocaleDateString()}</td>
-                  <td>{c.source}</td>
+                  <td>{commissionLabel(c.source)}</td>
                   <td>{money(c.amountCents)}</td>
                   <td>{c.status}</td>
                 </tr>

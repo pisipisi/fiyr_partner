@@ -1,11 +1,18 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { applyPartner } from '../api/partners';
+import { capturePartnerReferralCode } from '../utils/partnerReferral';
 
 export default function ApplyPage() {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | undefined>();
+
+  useEffect(() => {
+    const code = capturePartnerReferralCode();
+    if (code) setReferralCode(code);
+  }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -20,6 +27,7 @@ export default function ApplyPage() {
         companyName: String(fd.get('companyName') || '') || undefined,
         website: String(fd.get('website') || '') || undefined,
         preferredCode: String(fd.get('preferredCode') || '') || undefined,
+        referralCode,
         applicationNote: String(fd.get('applicationNote') || '') || undefined,
       });
       setDone(true);
@@ -53,6 +61,11 @@ export default function ApplyPage() {
     <main className="shell section">
       <h2>Apply to partner with Fiyr</h2>
       <p className="lead">Create your partner account. Approval required before payouts.</p>
+      {referralCode ? (
+        <p className="success" style={{ marginBottom: '1rem' }}>
+          Referred by partner code <strong>{referralCode}</strong>.
+        </p>
+      ) : null}
       <form className="form card" onSubmit={onSubmit}>
         <label>
           Email

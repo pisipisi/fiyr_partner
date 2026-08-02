@@ -30,17 +30,18 @@ export default function HomePage() {
             <p>Tell us how you promote. We review and approve partners quickly.</p>
           </article>
           <article className="card">
-            <h3>2. Share your link</h3>
+            <h3>2. Share your links</h3>
             <p>
-              Use your unique signup link. New businesses that register through
-              it are attributed to you.
+              Refer businesses with your signup link, or recruit other partners
+              with your apply link.
             </p>
           </article>
           <article className="card">
             <h3>3. Earn on paid plans</h3>
             <p>
-              Default: 20% of each paid subscription invoice for 12 months after
-              signup. No commission until they pay.
+              Default: 20% of each paid subscription invoice for 12 months.
+              Recruit partners and earn a 5% override on their business referrals
+              too (single level).
             </p>
           </article>
         </div>

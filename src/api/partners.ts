@@ -51,6 +51,7 @@ export async function applyPartner(body: {
   companyName?: string;
   website?: string;
   preferredCode?: string;
+  referralCode?: string;
   applicationNote?: string;
 }) {
   const res = await fetch(apiUrl('/partners/apply'), {
