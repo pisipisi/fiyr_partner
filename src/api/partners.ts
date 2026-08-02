@@ -321,7 +321,8 @@ export type PricingBasePlansResponse = {
     prices: Array<{
       basePriceId: string;
       billingPeriod: string;
-      unitAmount: number;
+      wholesaleUnitAmount: number;
+      retailUnitAmount: number | null;
       currency: string;
     }>;
   }>;

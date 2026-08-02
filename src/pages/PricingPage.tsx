@@ -21,6 +21,37 @@ function statusLabel(status: string) {
   return status;
 }
 
+function buildInitialRetail(
+  data: PricingBasePlansResponse,
+): Record<string, string> {
+  const initial: Record<string, string> = {};
+  const rejected = data.requests.find((r) => r.status === 'rejected');
+  const pending = data.requests.find((r) => r.status === 'pending');
+
+  if (rejected?.proposedPrices?.length) {
+    for (const price of rejected.proposedPrices) {
+      initial[price.basePriceId] = String(price.unitAmount / 100);
+    }
+  } else if (pending?.proposedPrices?.length) {
+    for (const price of pending.proposedPrices) {
+      initial[price.basePriceId] = String(price.unitAmount / 100);
+    }
+  }
+
+  for (const plan of data.plans) {
+    for (const price of plan.prices) {
+      if (initial[price.basePriceId] != null) continue;
+      if (price.retailUnitAmount != null) {
+        initial[price.basePriceId] = String(price.retailUnitAmount / 100);
+      } else {
+        initial[price.basePriceId] = String(price.wholesaleUnitAmount / 100);
+      }
+    }
+  }
+
+  return initial;
+}
+
 export default function PricingPage() {
   const [data, setData] = useState<PricingBasePlansResponse | null>(null);
   const [error, setError] = useState('');
@@ -35,19 +66,7 @@ export default function PricingPage() {
     try {
       const next = await getPricingBasePlans();
       setData(next);
-      const initial: Record<string, string> = {};
-      const rejected = next.requests.find((r) => r.status === 'rejected');
-      if (rejected?.proposedPrices?.length) {
-        for (const price of rejected.proposedPrices) {
-          initial[price.basePriceId] = String(price.unitAmount / 100);
-        }
-      }
-      for (const plan of next.plans) {
-        for (const price of plan.prices) {
-          initial[price.basePriceId] ??= String(price.unitAmount / 100);
-        }
-      }
-      setRetailByBaseId(initial);
+      setRetailByBaseId(buildInitialRetail(next));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load pricing');
     }
@@ -64,7 +83,8 @@ export default function PricingPage() {
         planName: plan.name,
         basePriceId: price.basePriceId,
         billingPeriod: price.billingPeriod,
-        baseUnitAmount: price.unitAmount,
+        wholesaleUnitAmount: price.wholesaleUnitAmount,
+        approvedRetailUnitAmount: price.retailUnitAmount,
         currency: price.currency,
       })),
     );
@@ -74,21 +94,21 @@ export default function PricingPage() {
     return rows.map((row) => {
       const retailDollars = Number(retailByBaseId[row.basePriceId] ?? '0');
       const retailCents = Math.round(retailDollars * 100);
-      const belowBase =
-        Number.isNaN(retailDollars) || retailCents < row.baseUnitAmount;
-      const markup = Math.max(0, retailCents - row.baseUnitAmount);
+      const belowWholesale =
+        Number.isNaN(retailDollars) || retailCents < row.wholesaleUnitAmount;
+      const markup = Math.max(0, retailCents - row.wholesaleUnitAmount);
       const program = Math.round(retailCents * 0.2);
       return {
         ...row,
         retailCents,
-        belowBase,
+        belowWholesale,
         markup,
         estimatedEarnings: markup + program,
       };
     });
   }, [rows, retailByBaseId]);
 
-  const hasInvalidRetail = preview.some((row) => row.belowBase);
+  const hasInvalidRetail = preview.some((row) => row.belowWholesale);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -103,10 +123,10 @@ export default function PricingPage() {
           throw new Error(`Enter a valid retail price for ${row.planName}`);
         }
         const unitAmount = Math.round(dollars * 100);
-        if (unitAmount < row.baseUnitAmount) {
+        if (unitAmount < row.wholesaleUnitAmount) {
           const period = row.billingPeriod === 'MONTH' ? 'monthly' : 'yearly';
           throw new Error(
-            `Retail price for ${row.planName} (${period}) must be at least ${money(row.baseUnitAmount, row.currency)}`,
+            `Retail price for ${row.planName} (${period}) must be at least ${money(row.wholesaleUnitAmount, row.currency)}`,
           );
         }
         return {
@@ -116,12 +136,17 @@ export default function PricingPage() {
         };
       });
       const rejectedRequest = data.requests.find((r) => r.status === 'rejected');
+      const hasApprovedSheet = Boolean(data.activeRequest);
       if (rejectedRequest) {
         await updatePricingRequest(rejectedRequest.id, { proposedPrices });
         setMessage('Updated pricing resubmitted for admin approval.');
       } else {
         await submitPricingRequest({ proposedPrices });
-        setMessage('Pricing submitted for admin approval.');
+        setMessage(
+          hasApprovedSheet
+            ? 'Price change submitted for admin approval.'
+            : 'Pricing submitted for admin approval.',
+        );
       }
       await load();
     } catch (err) {
@@ -132,23 +157,26 @@ export default function PricingPage() {
   }
 
   const hasPending = data?.requests?.some((r) => r.status === 'pending');
+  const hasApprovedSheet = Boolean(data?.activeRequest);
 
   return (
     <main className="shell section">
       <h2>Custom subscription pricing</h2>
       <p className="muted">
-        Set retail prices at or above Fiyr wholesale. You earn markup plus 20%
-        program commission on referred business subscriptions.
+        {hasApprovedSheet
+          ? 'Your approved retail prices are shown below with Fiyr wholesale for reference. Edit retail prices and submit a change request when you want admin review.'
+          : 'Set retail prices at or above Fiyr wholesale. You earn markup plus 20% program commission on referred business subscriptions.'}
       </p>
 
       {error ? <p className="error">{error}</p> : null}
       {message ? <p className="ok">{message}</p> : null}
 
-      {data?.activeRequest ? (
+      {hasApprovedSheet && data?.activeRequest ? (
         <div className="card" style={{ marginBottom: '1rem' }}>
-          <strong>Active approved sheet</strong>
+          <strong>Active pricing sheet</strong>
           <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-            Approved {new Date(data.activeRequest.reviewedAt ?? '').toLocaleString()}
+            Approved{' '}
+            {new Date(data.activeRequest.reviewedAt ?? '').toLocaleString()}
           </p>
         </div>
       ) : null}
@@ -156,7 +184,7 @@ export default function PricingPage() {
       {hasPending ? (
         <div className="card warn-card" style={{ marginBottom: '1rem' }}>
           You have a pending pricing request. Wait for admin review before
-          submitting again.
+          submitting another change.
         </div>
       ) : null}
 
@@ -178,11 +206,11 @@ export default function PricingPage() {
                 <tr key={row.basePriceId}>
                   <td>{row.planName}</td>
                   <td>{row.billingPeriod === 'MONTH' ? 'Monthly' : 'Yearly'}</td>
-                  <td>{money(row.baseUnitAmount, row.currency)}</td>
+                  <td>{money(row.wholesaleUnitAmount, row.currency)}</td>
                   <td>
                     <input
                       type="number"
-                      min={row.baseUnitAmount / 100}
+                      min={row.wholesaleUnitAmount / 100}
                       step="0.01"
                       value={retailByBaseId[row.basePriceId] ?? ''}
                       onChange={(ev) =>
@@ -192,12 +220,13 @@ export default function PricingPage() {
                         }))
                       }
                       disabled={hasPending || busy}
-                      aria-invalid={row.belowBase || undefined}
-                      className={row.belowBase ? 'input-invalid' : undefined}
+                      aria-invalid={row.belowWholesale || undefined}
+                      className={row.belowWholesale ? 'input-invalid' : undefined}
                     />
-                    {row.belowBase ? (
+                    {row.belowWholesale ? (
                       <p className="field-error">
-                        Must be at least {money(row.baseUnitAmount, row.currency)}
+                        Must be at least{' '}
+                        {money(row.wholesaleUnitAmount, row.currency)}
                       </p>
                     ) : null}
                   </td>
@@ -214,7 +243,11 @@ export default function PricingPage() {
             className="btn btn-primary"
             disabled={busy || hasPending || !rows.length || hasInvalidRetail}
           >
-            {busy ? 'Submitting…' : 'Submit for approval'}
+            {busy
+              ? 'Submitting…'
+              : hasApprovedSheet
+                ? 'Request price change'
+                : 'Submit for approval'}
           </button>
         </div>
       </form>
