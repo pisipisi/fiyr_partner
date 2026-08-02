@@ -116,6 +116,13 @@ export default function ApplyPage() {
           How will you promote Fiyr?
           <textarea name="applicationNote" />
         </label>
+        <label className="legal-consent">
+          <input name="acceptTerms" type="checkbox" required />
+          <span>
+            I agree to the <Link to="/terms">Partner Program Terms</Link> and{' '}
+            <Link to="/privacy">Partner Privacy Policy</Link>.
+          </span>
+        </label>
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={loading}>
           {loading ? 'Submitting…' : 'Submit application'}

@@ -8,6 +8,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import PricingPage from './pages/PricingPage';
+import PrivacyPage from './pages/PrivacyPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import SettingsPage from './pages/SettingsPage';
 import TermsPage from './pages/TermsPage';
@@ -28,6 +29,9 @@ function Header() {
         <nav className="nav" aria-label="Main">
           <Link to="/terms" className="btn btn-ghost btn-sm">
             Terms
+          </Link>
+          <Link to="/privacy" className="btn btn-ghost btn-sm">
+            Privacy
           </Link>
           {authenticated ? (
             <>
@@ -77,6 +81,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route
           path="/pricing"
           element={
@@ -103,7 +108,11 @@ function AppRoutes() {
         />
       </Routes>
       <footer className="shell site-footer">
-        © {new Date().getFullYear()} Fiyr · partner.fiyr.io
+        <span>© {new Date().getFullYear()} Fiyr · partner.fiyr.io</span>
+        <span className="site-footer-links">
+          <Link to="/terms">Terms</Link>
+          <Link to="/privacy">Privacy</Link>
+        </span>
       </footer>
     </>
   );

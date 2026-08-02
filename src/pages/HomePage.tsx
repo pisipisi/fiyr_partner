@@ -135,7 +135,10 @@ export default function HomePage() {
               <IconArrowRight />
             </Link>
             <Link to="/terms" className="btn btn-ghost">
-              Read partner terms
+              Partner terms
+            </Link>
+            <Link to="/privacy" className="btn btn-ghost">
+              Privacy
             </Link>
           </div>
         </div>

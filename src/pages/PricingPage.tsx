@@ -74,16 +74,21 @@ export default function PricingPage() {
     return rows.map((row) => {
       const retailDollars = Number(retailByBaseId[row.basePriceId] ?? '0');
       const retailCents = Math.round(retailDollars * 100);
+      const belowBase =
+        Number.isNaN(retailDollars) || retailCents < row.baseUnitAmount;
       const markup = Math.max(0, retailCents - row.baseUnitAmount);
       const program = Math.round(retailCents * 0.2);
       return {
         ...row,
         retailCents,
+        belowBase,
         markup,
         estimatedEarnings: markup + program,
       };
     });
   }, [rows, retailByBaseId]);
+
+  const hasInvalidRetail = preview.some((row) => row.belowBase);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -95,11 +100,18 @@ export default function PricingPage() {
       const proposedPrices = rows.map((row) => {
         const dollars = Number(retailByBaseId[row.basePriceId]);
         if (Number.isNaN(dollars)) {
-          throw new Error(`Invalid price for ${row.planName}`);
+          throw new Error(`Enter a valid retail price for ${row.planName}`);
+        }
+        const unitAmount = Math.round(dollars * 100);
+        if (unitAmount < row.baseUnitAmount) {
+          const period = row.billingPeriod === 'MONTH' ? 'monthly' : 'yearly';
+          throw new Error(
+            `Retail price for ${row.planName} (${period}) must be at least ${money(row.baseUnitAmount, row.currency)}`,
+          );
         }
         return {
           basePriceId: row.basePriceId,
-          unitAmount: Math.round(dollars * 100),
+          unitAmount,
           billingPeriod: row.billingPeriod as 'MONTH' | 'YEAR',
         };
       });
@@ -149,51 +161,62 @@ export default function PricingPage() {
       ) : null}
 
       <form onSubmit={onSubmit} className="card">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Plan</th>
-              <th>Period</th>
-              <th>Wholesale</th>
-              <th>Your retail (USD)</th>
-              <th>Markup</th>
-              <th>Est. earnings</th>
-            </tr>
-          </thead>
-          <tbody>
-            {preview.map((row) => (
-              <tr key={row.basePriceId}>
-                <td>{row.planName}</td>
-                <td>{row.billingPeriod === 'MONTH' ? 'Monthly' : 'Yearly'}</td>
-                <td>{money(row.baseUnitAmount, row.currency)}</td>
-                <td>
-                  <input
-                    type="number"
-                    min={row.baseUnitAmount / 100}
-                    step="0.01"
-                    value={retailByBaseId[row.basePriceId] ?? ''}
-                    onChange={(ev) =>
-                      setRetailByBaseId((prev) => ({
-                        ...prev,
-                        [row.basePriceId]: ev.target.value,
-                      }))
-                    }
-                    disabled={hasPending || busy}
-                  />
-                </td>
-                <td>{money(row.markup, row.currency)}</td>
-                <td>{money(row.estimatedEarnings, row.currency)}</td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th>Period</th>
+                <th>Wholesale</th>
+                <th>Your retail (USD)</th>
+                <th>Markup</th>
+                <th>Est. earnings</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={busy || hasPending || !rows.length}
-        >
-          {busy ? 'Submitting…' : 'Submit for approval'}
-        </button>
+            </thead>
+            <tbody>
+              {preview.map((row) => (
+                <tr key={row.basePriceId}>
+                  <td>{row.planName}</td>
+                  <td>{row.billingPeriod === 'MONTH' ? 'Monthly' : 'Yearly'}</td>
+                  <td>{money(row.baseUnitAmount, row.currency)}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={row.baseUnitAmount / 100}
+                      step="0.01"
+                      value={retailByBaseId[row.basePriceId] ?? ''}
+                      onChange={(ev) =>
+                        setRetailByBaseId((prev) => ({
+                          ...prev,
+                          [row.basePriceId]: ev.target.value,
+                        }))
+                      }
+                      disabled={hasPending || busy}
+                      aria-invalid={row.belowBase || undefined}
+                      className={row.belowBase ? 'input-invalid' : undefined}
+                    />
+                    {row.belowBase ? (
+                      <p className="field-error">
+                        Must be at least {money(row.baseUnitAmount, row.currency)}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td>{money(row.markup, row.currency)}</td>
+                  <td>{money(row.estimatedEarnings, row.currency)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="card-actions">
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={busy || hasPending || !rows.length || hasInvalidRetail}
+          >
+            {busy ? 'Submitting…' : 'Submit for approval'}
+          </button>
+        </div>
       </form>
 
       {data?.requests?.length ? (

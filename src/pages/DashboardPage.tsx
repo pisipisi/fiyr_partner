@@ -143,14 +143,6 @@ export default function DashboardPage() {
             <span>{data.partner.recurringMonths} months</span>
           </div>
         </div>
-        <div className="dashboard-actions">
-          <Link to="/pricing" className="btn btn-ghost btn-sm">
-            Custom pricing
-          </Link>
-          <Link to="/settings" className="btn btn-ghost btn-sm">
-            Settings
-          </Link>
-        </div>
       </div>
 
       {!data.partner.w9Submitted ? (
