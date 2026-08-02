@@ -22,7 +22,7 @@ function Header() {
     <div className="site-header-wrap">
       <header className="shell site-header">
         <Link to="/" className="brand">
-          <span className="brand-mark" aria-hidden>F</span>
+          <img src="/app_logo.png" alt="" className="brand-logo" width={32} height={32} />
           Fiyr Partners
         </Link>
         <nav className="nav" aria-label="Main">

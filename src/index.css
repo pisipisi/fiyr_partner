@@ -111,17 +111,13 @@ textarea {
   cursor: pointer;
 }
 
-.brand-mark {
+.brand-logo {
   width: 2rem;
   height: 2rem;
-  border-radius: 0.65rem;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  display: grid;
-  place-items: center;
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: #fff;
-  box-shadow: 0 4px 16px var(--primary-glow);
+  border-radius: 0.55rem;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .nav {
