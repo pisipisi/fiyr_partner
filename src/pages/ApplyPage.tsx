@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { applyPartner } from '../api/partners';
-import { capturePartnerReferralCode } from '../utils/partnerReferral';
+import {
+  capturePartnerReferralCode,
+  getStoredPartnerReferralCode,
+} from '../utils/partnerReferral';
 
 export default function ApplyPage() {
   const [error, setError] = useState('');
@@ -10,7 +13,8 @@ export default function ApplyPage() {
   const [referralCode, setReferralCode] = useState<string | undefined>();
 
   useEffect(() => {
-    const code = capturePartnerReferralCode();
+    capturePartnerReferralCode();
+    const code = getStoredPartnerReferralCode();
     if (code) setReferralCode(code);
   }, []);
 

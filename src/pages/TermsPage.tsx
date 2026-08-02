@@ -25,9 +25,19 @@ export default function TermsPage() {
           Commissions apply only to SaaS subscription payments.
         </p>
         <p>
+          Approved custom pricing lets you set retail subscription rates at or
+          above Fiyr wholesale for businesses you refer. Your earnings on
+          partner-priced plans are retail markup plus 20% program commission.
+          If you recruit other partners, you earn a 5% override on the base
+          wholesale price (not the full invoice) when they sell partner-priced
+          plans.
+        </p>
+        <p>
           Fiyr may approve, reject, suspend, or adjust partner rates. Payouts are
-          processed manually after review. Fraudulent traffic or misleading ads
-          may result in forfeiture of unpaid commissions and account suspension.
+          processed manually after review. You must complete the W-9 form (online
+          or upload a signed PDF) and valid payout details (PayPal or bank)
+          before your first payout. Fraudulent traffic or misleading ads may
+          result in forfeiture of unpaid commissions and account suspension.
         </p>
         <p>
           These MVP terms may be updated. Continued participation after notice

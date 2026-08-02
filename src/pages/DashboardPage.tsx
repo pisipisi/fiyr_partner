@@ -1,8 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getDashboard } from '../api/partners';
 import {
-  getDashboard,
-  updatePayoutDetails,
-} from '../api/partners';
+  IconCopy,
+  IconDollar,
+  IconMousePointer,
+  IconTrending,
+  IconUsers,
+  IconWallet,
+} from '../components/Icons';
 
 type Dashboard = {
   partner: {
@@ -11,11 +17,7 @@ type Dashboard = {
     businessCommissionPercent: number;
     partnerOverridePercent?: number;
     recurringMonths: number;
-    payoutDetails?: {
-      method?: string;
-      paypalEmail?: string;
-      notes?: string;
-    } | null;
+    w9Submitted?: boolean;
   };
   links: {
     business: string;
@@ -58,9 +60,16 @@ type Dashboard = {
   }>;
 };
 
+const LINKS = [
+  { key: 'business', label: 'Landing page', desc: 'Share on your website or social' },
+  { key: 'register', label: 'App signup', desc: 'Direct link to Fiyr registration' },
+  { key: 'recruit', label: 'Recruit partners', desc: 'Invite other affiliates to join' },
+] as const;
+
 function commissionLabel(source: string) {
   if (source === 'subscription_invoice') return 'Business subscription';
   if (source === 'subscription_override') return 'Partner override';
+  if (source === 'subscription_markup') return 'Subscription markup';
   if (source === 'booking') return 'Booking';
   return source;
 }
@@ -73,10 +82,15 @@ function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function statusBadge(status: string) {
+  const cls = ['paid', 'approved', 'pending'].includes(status) ? status : status;
+  return <span className={`badge ${cls}`}>{status}</span>;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState('');
-  const [payoutMsg, setPayoutMsg] = useState('');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
     getDashboard<Dashboard>()
@@ -86,27 +100,15 @@ export default function DashboardPage() {
       );
   }, []);
 
-  async function onPayoutSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setPayoutMsg('');
-    const fd = new FormData(e.currentTarget);
-    try {
-      await updatePayoutDetails({
-        method: String(fd.get('method') || 'paypal'),
-        paypalEmail: String(fd.get('paypalEmail') || ''),
-        notes: String(fd.get('notes') || ''),
-      });
-      setPayoutMsg('Payout details saved.');
-      const refreshed = await getDashboard<Dashboard>();
-      setData(refreshed);
-    } catch (err) {
-      setPayoutMsg(err instanceof Error ? err.message : 'Save failed');
-    }
+  async function handleCopy(key: string, text: string) {
+    await copyText(text);
+    setCopiedKey(key);
+    window.setTimeout(() => setCopiedKey(null), 2000);
   }
 
-  if (error) {
+  if (error && !data) {
     return (
-      <main className="shell section">
+      <main className="shell dashboard-page">
         <p className="error">{error}</p>
       </main>
     );
@@ -114,236 +116,249 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <main className="shell section">
-        <p>Loading dashboard…</p>
+      <main className="shell dashboard-page">
+        <div className="loading-state" role="status">
+          <div className="loading-spinner" aria-hidden />
+          Loading dashboard…
+        </div>
       </main>
     );
   }
 
-  return (
-    <main className="shell section">
-      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-        <h2>Dashboard</h2>
-        <span className={`badge ${data.partner.status}`}>{data.partner.status}</span>
-      </div>
-      <p className="lead">
-        Code <strong>{data.partner.code}</strong> ·{' '}
-        {data.partner.businessCommissionPercent}% of paid subscriptions ·{' '}
-        {data.partner.recurringMonths} months
-      </p>
+  const linkMap = data.links;
 
-      {data.partner.status !== 'approved' ? (
-        <div className="card" style={{ marginBottom: '1.25rem' }}>
-          Your account is <strong>{data.partner.status}</strong>. Links work after
-          approval.
+  return (
+    <main className="shell dashboard-page">
+      <div className="dashboard-top">
+        <div>
+          <h1>Dashboard</h1>
+          <div className="dashboard-meta">
+            <span className={`badge ${data.partner.status}`}>{data.partner.status}</span>
+            <span>
+              Code <code>{data.partner.code}</code>
+            </span>
+            <span>·</span>
+            <span>{data.partner.businessCommissionPercent}% commission</span>
+            <span>·</span>
+            <span>{data.partner.recurringMonths} months</span>
+          </div>
+        </div>
+        <div className="dashboard-actions">
+          <Link to="/pricing" className="btn btn-ghost btn-sm">
+            Custom pricing
+          </Link>
+          <Link to="/settings" className="btn btn-ghost btn-sm">
+            Settings
+          </Link>
+        </div>
+      </div>
+
+      {!data.partner.w9Submitted ? (
+        <div className="warn-card" style={{ marginBottom: '1.25rem' }}>
+          Submit your W-9 tax form in{' '}
+          <Link to="/settings?tab=w9" style={{ color: 'inherit', textDecoration: 'underline' }}>
+            Settings
+          </Link>{' '}
+          before you can receive payouts.
         </div>
       ) : null}
 
-      <div className="stats" style={{ marginBottom: '1.5rem' }}>
+      <div className="stats">
         <div className="stat">
-          <div className="label">Clicks</div>
-          <div className="value">{data.stats.clicks}</div>
+          <div className="stat-icon clicks">
+            <IconMousePointer />
+          </div>
+          <div className="stat-body">
+            <div className="label">Clicks</div>
+            <div className="value">{data.stats.clicks.toLocaleString()}</div>
+          </div>
         </div>
         <div className="stat">
-          <div className="label">Business referrals</div>
-          <div className="value">{data.stats.businessAttributions}</div>
+          <div className="stat-icon referrals">
+            <IconUsers />
+          </div>
+          <div className="stat-body">
+            <div className="label">Referrals</div>
+            <div className="value">{data.stats.businessAttributions}</div>
+          </div>
         </div>
         <div className="stat">
-          <div className="label">Partner referrals</div>
-          <div className="value">{data.stats.partnerReferrals}</div>
+          <div className="stat-icon earned">
+            <IconTrending />
+          </div>
+          <div className="stat-body">
+            <div className="label">Earned</div>
+            <div className="value">{money(data.stats.earnedCents)}</div>
+          </div>
         </div>
         <div className="stat">
-          <div className="label">Override earned</div>
-          <div className="value">{money(data.stats.overrideEarnedCents)}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Pending</div>
-          <div className="value">{money(data.stats.pendingCents)}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Paid</div>
-          <div className="value">{money(data.stats.paidCents)}</div>
+          <div className="stat-icon pending">
+            <IconDollar />
+          </div>
+          <div className="stat-body">
+            <div className="label">Pending</div>
+            <div className="value">{money(data.stats.pendingCents)}</div>
+          </div>
         </div>
       </div>
 
-      <section className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3>Your links</h3>
-        <p style={{ color: 'var(--muted)', margin: '0.5rem 0 1rem' }}>
-          Share business links to earn on subscriptions. Share your recruit link
-          to earn a {data.partner.partnerOverridePercent ?? 5}% override when
-          partners you refer bring paying businesses.
-        </p>
-        <div style={{ display: 'grid', gap: '0.85rem' }}>
-          <div>
-            <div className="label">Business landing</div>
-            <div className="link-row">
-              <code>{data.links.business}</code>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => copyText(data.links.business)}
-              >
-                Copy
-              </button>
+      <div className="dashboard-main">
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h3>Referral links</h3>
+              <p className="card-desc">Copy and share anywhere you promote Fiyr</p>
             </div>
           </div>
-          <div>
-            <div className="label">Register</div>
-            <div className="link-row">
-              <code>{data.links.register}</code>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => copyText(data.links.register)}
-              >
-                Copy
-              </button>
+          <div className="link-list">
+            {LINKS.map(({ key, label, desc }) => {
+              const url = linkMap[key];
+              return (
+                <div key={key} className="link-item">
+                  <div className="link-item-label">{label}</div>
+                  <div className="muted" style={{ fontSize: '0.82rem', marginBottom: '0.25rem' }}>
+                    {desc}
+                  </div>
+                  <div className="link-row">
+                    <code>{url}</code>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon"
+                      aria-label={`Copy ${label}`}
+                      onClick={() => void handleCopy(key, url)}
+                    >
+                      <IconCopy />
+                    </button>
+                  </div>
+                  {copiedKey === key ? (
+                    <span className="success" style={{ fontSize: '0.82rem' }}>Copied!</span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h3>Recent commissions</h3>
+              <p className="card-desc">Latest earnings from your referrals</p>
             </div>
           </div>
-          <div>
-            <div className="label">Recruit partners</div>
-            <div className="link-row">
-              <code>{data.links.recruit}</code>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => copyText(data.links.recruit)}
-              >
-                Copy
-              </button>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Source</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentCommissions.length === 0 ? (
+                  <tr className="table-empty">
+                    <td colSpan={4}>No commissions yet. Earn when referred businesses pay.</td>
+                  </tr>
+                ) : (
+                  data.recentCommissions.map((c) => (
+                    <tr key={c.id}>
+                      <td>{new Date(c.createdAt).toLocaleDateString()}</td>
+                      <td>{commissionLabel(c.source)}</td>
+                      <td style={{ fontWeight: 600 }}>{money(c.amountCents)}</td>
+                      <td>{statusBadge(c.status)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h3>Referred partners</h3>
+              <p className="card-desc">
+                {data.stats.partnerReferrals} recruited ·{' '}
+                {money(data.stats.overrideEarnedCents)} override earned
+              </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3>Referred partners</h3>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Partner</th>
-              <th>Code</th>
-              <th>Status</th>
-              <th>Joined</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.referredPartners.length === 0 ? (
-              <tr>
-                <td colSpan={4}>
-                  No partner referrals yet. Share your recruit link to grow your
-                  network.
-                </td>
-              </tr>
-            ) : (
-              data.referredPartners.map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <strong>{p.fullName || p.email}</strong>
-                    <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
-                      {p.email}
-                    </div>
-                  </td>
-                  <td>{p.code}</td>
-                  <td>{p.status}</td>
-                  <td>{new Date(p.referredAt || p.createdAt).toLocaleDateString()}</td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Code</th>
+                  <th>Status</th>
+                  <th>Referred</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
+              </thead>
+              <tbody>
+                {data.referredPartners.length === 0 ? (
+                  <tr className="table-empty">
+                    <td colSpan={4}>No partner referrals yet.</td>
+                  </tr>
+                ) : (
+                  data.referredPartners.map((p) => (
+                    <tr key={p.id}>
+                      <td>
+                        {p.fullName || p.email}
+                        <div className="muted" style={{ fontSize: '0.82rem' }}>
+                          {p.email}
+                        </div>
+                      </td>
+                      <td>
+                        <code style={{ fontSize: '0.82rem' }}>{p.code}</code>
+                      </td>
+                      <td>{statusBadge(p.status)}</td>
+                      <td>{new Date(p.referredAt || p.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <section className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3>Payout method</h3>
-        <form className="form" onSubmit={onPayoutSubmit} style={{ marginTop: '0.75rem' }}>
-          <label>
-            Method
-            <select name="method" defaultValue={data.partner.payoutDetails?.method || 'paypal'}>
-              <option value="paypal">PayPal</option>
-              <option value="bank">Bank</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label>
-            PayPal email
-            <input
-              name="paypalEmail"
-              type="email"
-              defaultValue={data.partner.payoutDetails?.paypalEmail || ''}
-            />
-          </label>
-          <label>
-            Notes
-            <textarea
-              name="notes"
-              defaultValue={data.partner.payoutDetails?.notes || ''}
-            />
-          </label>
-          {payoutMsg ? <p className="success">{payoutMsg}</p> : null}
-          <button type="submit" className="btn btn-primary">
-            Save payout details
-          </button>
-        </form>
-      </section>
-
-      <section className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3>Recent commissions</h3>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Source</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.recentCommissions.length === 0 ? (
-              <tr>
-                <td colSpan={4}>No commissions yet. Earn when referred businesses pay.</td>
-              </tr>
-            ) : (
-              data.recentCommissions.map((c) => (
-                <tr key={c.id}>
-                  <td>{new Date(c.createdAt).toLocaleDateString()}</td>
-                  <td>{commissionLabel(c.source)}</td>
-                  <td>{money(c.amountCents)}</td>
-                  <td>{c.status}</td>
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h3>Payout history</h3>
+              <p className="card-desc">{money(data.stats.paidCents)} total paid out</p>
+            </div>
+            <IconWallet className="card-head-icon" />
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Amount</th>
+                  <th>Status</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="card">
-        <h3>Payouts</h3>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.payouts.length === 0 ? (
-              <tr>
-                <td colSpan={3}>No payouts yet.</td>
-              </tr>
-            ) : (
-              data.payouts.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.period}</td>
-                  <td>{money(p.amountCents)}</td>
-                  <td>{p.status}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
+              </thead>
+              <tbody>
+                {data.payouts.length === 0 ? (
+                  <tr className="table-empty">
+                    <td colSpan={3}>No payouts yet.</td>
+                  </tr>
+                ) : (
+                  data.payouts.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.period}</td>
+                      <td style={{ fontWeight: 600 }}>{money(p.amountCents)}</td>
+                      <td>{statusBadge(p.status)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

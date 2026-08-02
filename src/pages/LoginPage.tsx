@@ -1,9 +1,14 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getMePartner, login } from '../api/partners';
+import { useAuth } from '../auth/AuthContext';
+import { applyPathWithReferral } from '../utils/partnerReferral';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { refresh } = useAuth();
+  const sessionExpired = searchParams.get('session') === 'expired';
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +20,7 @@ export default function LoginPage() {
     try {
       await login(String(fd.get('email') || ''), String(fd.get('password') || ''));
       await getMePartner();
+      refresh();
       navigate('/dashboard');
     } catch (err) {
       setError(
@@ -31,8 +37,13 @@ export default function LoginPage() {
     <main className="shell section">
       <h2>Partner login</h2>
       <p className="lead">
-        No account yet? <Link to="/apply">Apply here</Link>.
+        No account yet? <Link to={applyPathWithReferral()}>Apply here</Link>.
       </p>
+      {sessionExpired ? (
+        <p className="warn-card" style={{ maxWidth: '28rem', marginBottom: '1rem' }}>
+          Your session expired. Please sign in again.
+        </p>
+      ) : null}
       <form className="form card" onSubmit={onSubmit}>
         <label>
           Email
