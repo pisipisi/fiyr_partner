@@ -74,6 +74,30 @@ export async function login(email: string, password: string) {
   return data;
 }
 
+export async function forgotPassword(email: string) {
+  const res = await fetch(apiUrl('/auth/forgot-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, client: 'partner' }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return readJson(res) as Promise<{ message?: string }>;
+}
+
+export async function resetPassword(body: {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}) {
+  const res = await fetch(apiUrl('/auth/reset-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return readJson(res) as Promise<{ message?: string }>;
+}
+
 export async function getMePartner() {
   const token = getToken();
   if (!token) throw new Error('Not logged in');

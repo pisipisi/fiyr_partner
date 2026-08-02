@@ -3,8 +3,10 @@ import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
 import { clearToken, getToken } from './api/partners';
 import ApplyPage from './pages/ApplyPage';
 import DashboardPage from './pages/DashboardPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import TermsPage from './pages/TermsPage';
 
 function Header() {
@@ -62,6 +64,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route
           path="/dashboard"

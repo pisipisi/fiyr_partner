@@ -47,6 +47,9 @@ export default function LoginPage() {
             autoComplete="current-password"
           />
         </label>
+        <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.9rem' }}>
+          <Link to="/forgot-password">Forgot password?</Link>
+        </p>
         {error ? <p className="error">{error}</p> : null}
         <button className="btn btn-primary" type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
